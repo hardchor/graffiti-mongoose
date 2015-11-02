@@ -121,7 +121,7 @@ export default function getType(graffitiModels, {name, description, fields}, roo
 
   // register type
   if (root) {
-    types[name] = GraphQLObjectTypeDefinition;
+    addType(name, GraphQLObjectTypeDefinition);
   }
 
   return GraphQLObjectTypeDefinition;
@@ -162,10 +162,15 @@ function getTypes(graffitiModels) {
   return types;
 }
 
+function addType(name, type) {
+  types[name] = type;
+}
+
 export default {
   GraphQLDate,
   GraphQLGeneric,
   getType,
   getTypes,
+  addType,
   nodeInterface
 };

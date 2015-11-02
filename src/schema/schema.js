@@ -12,10 +12,11 @@ import {
 import {
   mutationWithClientMutationId,
   connectionArgs,
-  connectionDefinitions
+  connectionDefinitions,
+  globalIdField
 } from 'graphql-relay';
 import {getModels} from './../model';
-import {getTypes, nodeInterface} from './../type';
+import {getTypes, addType, nodeInterface} from './../type';
 import {
   idToCursor,
   getIdFetcher,
@@ -26,6 +27,7 @@ import {
   getDeleteOneMutateHandler,
   connectionFromModel
 } from './../query';
+import Viewer from '../model/Viewer';
 
 const idField = {
   name: 'id',
@@ -196,23 +198,30 @@ function getMutationField(graffitiModel, type, viewer) {
 function getFields(graffitiModels, {mutation = true} = {}) {
   const types = getTypes(graffitiModels);
 
+  const GraphQLViewer = new GraphQLObjectType({
+    name: 'Viewer',
+    fields: reduce(types, (fields, type, key) => {
+      type.name = type.name || key;
+      const graffitiModel = graffitiModels[type.name];
+      return {
+        ...fields,
+        ...getConnectionField(graffitiModel, type),
+        ...getSingularQueryField(graffitiModel, type)
+      };
+    }, {
+      id: globalIdField('Viewer')
+    }),
+    interfaces: [nodeInterface]
+  });
+  // register viewer type
+  addType('Viewer', GraphQLViewer);
+
   const viewer = {
     name: 'viewer',
-    type: new GraphQLObjectType({
-      name: 'Viewer',
-      fields: reduce(types, (fields, type, key) => {
-        type.name = type.name || key;
-        const graffitiModel = graffitiModels[type.name];
-        return {
-          ...fields,
-          ...getConnectionField(graffitiModel, type),
-          ...getSingularQueryField(graffitiModel, type)
-        };
-      }, {
-        id: idField
-      })
-    }),
-    resolve: () => ({id: 'viewer'})
+    type: GraphQLViewer,
+    resolve: () => {
+      return new Viewer()
+    }
   };
 
   const {queries, mutations} = reduce(types, ({queries, mutations}, type, key) => {
