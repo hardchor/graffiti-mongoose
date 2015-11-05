@@ -17,7 +17,7 @@ import query from '../query';
 import model from '../model';
 import type from '../type';
 
-describe('field', () => {
+describe('schema', () => {
   const types = {
     Qux: new GraphQLObjectType({
       name: 'Qux',

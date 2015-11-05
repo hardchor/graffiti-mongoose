@@ -16,7 +16,7 @@ import {
   globalIdField
 } from 'graphql-relay';
 import {getModels} from './../model';
-import {getTypes, addType, nodeInterface} from './../type';
+import {getTypes, GraphQLViewer, nodeInterface} from './../type';
 import {
   idToCursor,
   getIdFetcher,
@@ -27,7 +27,7 @@ import {
   getDeleteOneMutateHandler,
   connectionFromModel
 } from './../query';
-import Viewer from '../model/Viewer';
+import viewer from '../model/viewer';
 
 const idField = {
   name: 'id',
@@ -198,30 +198,22 @@ function getMutationField(graffitiModel, type, viewer) {
 function getFields(graffitiModels, {mutation = true} = {}) {
   const types = getTypes(graffitiModels);
 
-  const GraphQLViewer = new GraphQLObjectType({
-    name: 'Viewer',
-    fields: reduce(types, (fields, type, key) => {
-      type.name = type.name || key;
-      const graffitiModel = graffitiModels[type.name];
-      return {
-        ...fields,
-        ...getConnectionField(graffitiModel, type),
-        ...getSingularQueryField(graffitiModel, type)
-      };
-    }, {
-      id: globalIdField('Viewer')
-    }),
-    interfaces: [nodeInterface]
+  GraphQLViewer._typeConfig.fields = reduce(types, (fields, type, key) => {
+    type.name = type.name || key;
+    const graffitiModel = graffitiModels[type.name];
+    return {
+      ...fields,
+      ...getConnectionField(graffitiModel, type),
+      ...getSingularQueryField(graffitiModel, type)
+    };
+  }, {
+    id: globalIdField('Viewer')
   });
-  // register viewer type
-  addType('Viewer', GraphQLViewer);
 
-  const viewer = {
-    name: 'viewer',
+  const viewerField = {
+    name: viewer,
     type: GraphQLViewer,
-    resolve: () => {
-      return new Viewer()
-    }
+    resolve: () => viewer
   };
 
   const {queries, mutations} = reduce(types, ({queries, mutations}, type, key) => {
@@ -234,7 +226,7 @@ function getFields(graffitiModels, {mutation = true} = {}) {
       },
       mutations: {
         ...mutations,
-        ...getMutationField(graffitiModel, type, viewer)
+        ...getMutationField(graffitiModel, type, viewerField)
       }
     };
   }, {
@@ -245,7 +237,7 @@ function getFields(graffitiModels, {mutation = true} = {}) {
   const RootQuery = new GraphQLObjectType({
     name: 'RootQuery',
     fields: {
-      viewer,
+      viewer: viewerField,
       node: {
         name: 'node',
         description: 'Fetches an object given its ID',
